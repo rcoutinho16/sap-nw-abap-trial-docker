@@ -1,4 +1,4 @@
-FROM opensuse/leap:latest
+FROM opensuse/leap:15.2
 
 ENV LANG=en_US.UTF-8
 
