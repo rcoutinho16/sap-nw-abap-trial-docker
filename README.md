@@ -1,11 +1,11 @@
-# SAP NW ABAP Trial in Docker on Windows
+# SAP NW ABAP Trial in Docker on OpenSUSE
 
-This guide outlines how to install the SAP NW ABAB Developer Trial 7.51+ using Docker on a Windows 10 machine.
-
-#### [YouTube Tutorial](https://youtu.be/fL4XkwB617w)
-
+-   This guide outlines how to install the SAP NW ABAB Developer Trial 7.51+ using Docker on a OpenSUSE Leap 15.3 machine
+-   I guess it should work on any other distros (since it runs on Docker)
 
 ### Credit to the following people for the steps and the docker file:
+
+[Brandon Caulfield](https://github.com/brandoncaulfield/sap-nw-abap-trial-docker-windows)
 
 [Tobias Hofmann](https://github.com/tobiashofmann/sap-nw-abap-docker)
 
@@ -13,55 +13,91 @@ This guide outlines how to install the SAP NW ABAB Developer Trial 7.51+ using D
 
 [Gregor Wolf](https://bitbucket.org/gregorwolf/dockernwabap750/src/25ca7d78266bef8ed41f1373801fd5e63e0b9552/Dockerfile?at=master&fileviewer=file-view-default)
 
+###  Other References ###
+[1 - Concise Installation Guide](https://blogs.sap.com/2019/10/01/as-abap-7.52-sp04-developer-edition-concise-installation-guide/comment-page-1/#comment-618201)
+
+[2 - License Error (Step #10)](https://answers.sap.com/questions/13008312/sap-netweaver-752-sp-abort-execution-because-of-st.html)
+
+
+## Pre-Steps (openSUSE Leap 15.3 intructions, may differ on other distros):
+
+1. Install unrar:
+
+```sh
+sudo zypper install unrar
+```
+
+2. Install docker:
+
+```sh
+sudo zypper install -y docker python3-docker-compose
+sudo usermod -G docker -a $USER
+sudo systemctl enable docker
+```
 
 ## Steps:
 
-1. Clone this GitHub repo
+1. Clone this GitHub repo:
 
 ```sh
-git clone https://github.com/brandoncaulfield/sap-nw-abap-trial-docker-windows
-
+git clone https://github.com/rcoutinho16/sap-nw-abap-trial-docker-opensuse
+cd sap-nw-abap-trial-docker-opensuse
 ```
 
-2. Downlaod the [SAP NW ABAP Trial .rar files](https://developers.sap.com/trials-downloads.html)
+2. Download the [SAP NW ABAP Trial .rar files including the License](https://developers.sap.com/trials-downloads.html)
 
-3. Create a new folder in the local repo folder that you just cloned called **sapdownloads**
-
-4. Copy the extracted rar files to the **sapdownloads** folder
-
-5. Open Command Prompt or PowerShell and navigate to the local repo folder and run the docker build command:
+3. Create a new folder in the local repo folder that you just cloned called **sapdownloads**:
 
 ```sh
+mkdir sapdownloads
+```
+
+4. Copy the extracted rar files to the **sapdownloads** folder **including the License**:
+
+```sh
+unrar x ~/Downloads/TD752SP04part01.rar
+unrar x ~/Downloads/License.rar
+```
+
+5. Navigate to the root folder of the local repo and run the docker build command:
+
+```sh
+cd ..
 docker build -t nwabap:7.52 .
 ```
 
-6. Once the build has finished you need to adjust your **vm.max_map_count=1000000**. From a new Command Prompt or Powershell window run the following commands:
+6. Once the build has finished you need to adjust your **vm.max_map_count=1000000**:
 
 ```sh
-wsl -d docker-desktop
-sysctl -w vm.max_map_count=1000000
+sudo sysctl -w vm.max_map_count=1000000
 ```
 
-Check that the vm.max_map_count has actually changed by running this command:
+7. Check that the vm.max_map_count has actually changed by running this command:
 
 ```sh
-sysctl vm.max_map_count
+sudo sysctl vm.max_map_count
 ```
 
-7. Then run your docker container
+8. Then run your docker container:
 
 ```sh
 docker run -p 8000:8000 -p 44300:44300 -p 3300:3300 -p 3200:3200 -h vhcalnplci --name nwabap752 -it nwabap:7.52 /bin/bash
 ```
 
-8. Once your container is running you need to begin installing the SAP system. The password you select during the installation should be at least 8 characters long. This could take a while so be patient! :)
+9. Once your container is running you need to begin installing the SAP system. The **password** you select during the installation should be **at least 8 characters long**. This could take a while so be patient! :)
 
 ```sh
 /usr/sbin/uuidd
 ./install.sh
 ```
+10. If the installation fails with **modlib.jslib.caughtException** error copy the License to the installation folder and try again:
 
-9. Once the SAP system is installed successfully start the new SAP system by running the following commands:
+```sh
+mv License/SYBASE_ASE_TestDrive/SYBASE_ASE_TestDrive.lic /sybase/NPL/SYSAM-2_0/licenses/
+./install.sh
+```
+
+11. Once the SAP system is installed successfully start the new SAP system by running the following commands:
 
 ```sh
 su npladm
@@ -69,7 +105,6 @@ startsap ALL
 ```
 
 Then try and access your sap system using the GUI which is included in the SAP rar downloaded files (just needs to be installed normally).
-
 
 ## Important Post Installation Steps
 These steps were copied directly from Nabi Zamani's [GitHub Repo](https://github.com/nzamani/sap-nw-abap-trial-docker).
