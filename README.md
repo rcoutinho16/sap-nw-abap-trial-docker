@@ -13,7 +13,7 @@
 
 [Gregor Wolf](https://bitbucket.org/gregorwolf/dockernwabap750/src/25ca7d78266bef8ed41f1373801fd5e63e0b9552/Dockerfile?at=master&fileviewer=file-view-default)
 
-###  Other References ###
+###  Other References:
 [1 - Concise Installation Guide](https://blogs.sap.com/2019/10/01/as-abap-7.52-sp04-developer-edition-concise-installation-guide/comment-page-1/#comment-618201)
 
 [2 - License Error (Step #10)](https://answers.sap.com/questions/13008312/sap-netweaver-752-sp-abort-execution-because-of-st.html)
@@ -55,6 +55,7 @@ mkdir sapdownloads
 4. Copy the extracted rar files to the **sapdownloads** folder **including the License**:
 
 ```sh
+cd sapdownloads
 unrar x ~/Downloads/TD752SP04part01.rar
 unrar x ~/Downloads/License.rar
 ```
@@ -90,7 +91,7 @@ docker run -p 8000:8000 -p 44300:44300 -p 3300:3300 -p 3200:3200 -h vhcalnplci -
 /usr/sbin/uuidd
 ./install.sh
 ```
-10. If the installation fails with **modlib.jslib.caughtException** error copy the License to the installation folder and try again:
+10. If the installation fails with **modlib.jslib.caughtException** error, copy the License to the installation folder and try again:
 
 ```sh
 mv License/SYBASE_ASE_TestDrive/SYBASE_ASE_TestDrive.lic /sybase/NPL/SYSAM-2_0/licenses/
