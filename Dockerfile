@@ -1,20 +1,34 @@
-FROM opensuse/leap:15.2
+FROM opensuse/leap:15.4
 
 ENV LANG=en_US.UTF-8
 
-RUN zypper --non-interactive install --replacefiles which hostname expect net-tools iputils wget vim iproute2 unrar less tar gzip uuidd tcsh libaio
-#RUN zypper refresh && zypper --non-interactive up
+# install needed
+RUN zypper refresh
+RUN zypper --non-interactive install --replacefiles which
+RUN zypper --non-interactive install --replacefiles hostname
+RUN zypper --non-interactive install --replacefiles expect
+RUN zypper --non-interactive install --replacefiles net-tools
+RUN zypper --non-interactive install --replacefiles iputils
+RUN zypper --non-interactive install --replacefiles wget
+RUN zypper --non-interactive install --replacefiles vim
+RUN zypper --non-interactive install --replacefiles iproute2
+RUN zypper --non-interactive install --replacefiles unrar
+RUN zypper --non-interactive install --replacefiles less
+RUN zypper --non-interactive install --replacefiles tar
+RUN zypper --non-interactive install --replacefiles gzip
+RUN zypper --non-interactive install --replacefiles uuidd
+RUN zypper --non-interactive install --replacefiles tcsh
+RUN zypper --non-interactive install --replacefiles libaio
+RUN zypper --non-interactive up
 
 # uuidd is needed by nw abap
 RUN mkdir /run/uuidd && chown uuidd /var/run/uuidd && /usr/sbin/uuidd
 
-# Copy expect script + the extracted SAP NW ABAP files to the container
-COPY install.exp /tmp/sapdownloads/
+# Copy extracted SAP NW ABAP files to the container
 COPY sapdownloads /tmp/sapdownloads/
 
 WORKDIR /tmp/sapdownloads
-
-RUN chmod +x install.sh install.exp
+RUN chmod +x zinstall.sh
 
 # Important ports to be exposed (TCP):
 # HTTP
@@ -26,9 +40,4 @@ EXPOSE 3300
 # SAP GUI
 EXPOSE 3200
 # SAP Cloud Connector
-# EXPOSE 8443
-
-# Unfortunatelly, we cannot run the automated installation directly here!
-# Solution: run original install.sh or the automated install.exp after the image has been created
-# RUN ./install.exp
-
+#EXPOSE 8443

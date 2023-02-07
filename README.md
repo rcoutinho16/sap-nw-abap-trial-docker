@@ -1,7 +1,13 @@
-# SAP NW ABAP Trial in Docker on OpenSUSE
+# Update 01/2023
+- Switched to Docker on Windows
+- First enable virtualization on BIOS
+- Install wsl
+- Install Docker Desktop
 
--   This guide outlines how to install the SAP NW ABAB Developer Trial 7.51+ using Docker on a OpenSUSE Leap 15.3 machine
--   I guess it should work on any other distros (since it runs on Docker)
+# SAP NW ABAP Trial in Docker on Windows
+
+- This guide outlines how to install the SAP NW ABAB Developer Trial 7.51+ using Docker on a Windows 11 machine
+- It should work on Linux or Windows 10, but I haven't tested
 
 ### Credit to the following people for the steps and the docker file:
 
@@ -13,93 +19,102 @@
 
 [Gregor Wolf](https://bitbucket.org/gregorwolf/dockernwabap750/src/25ca7d78266bef8ed41f1373801fd5e63e0b9552/Dockerfile?at=master&fileviewer=file-view-default)
 
+[Dilan Drummonf](https://blogs.sap.com/2021/06/07/adjusting-installer-script-for-sap-netweaver-dev-edition-for-distros-with-kernel-version-5.4-or-higher/)
+
 ###  Other References:
 [1 - Concise Installation Guide](https://blogs.sap.com/2019/10/01/as-abap-7.52-sp04-developer-edition-concise-installation-guide/)
 
 [2 - License Error (Step #10)](https://answers.sap.com/questions/13008312/sap-netweaver-752-sp-abort-execution-because-of-st.html)
 
+[3 - Installer Adjustment for kernel >= 5.4](https://blogs.sap.com/2021/06/07/adjusting-installer-script-for-sap-netweaver-dev-edition-for-distros-with-kernel-version-5.4-or-higher/)
 
-## Pre-Steps (openSUSE Leap 15.3 intructions, may differ on other distros):
-
-1. Install unrar:
-
-```sh
-sudo zypper install unrar
-```
-
-2. Install docker:
-
-```sh
-sudo zypper install -y docker python3-docker-compose
-sudo usermod -G docker -a $USER
-sudo systemctl enable docker
-```
-
-## Steps:
+## Steps (I've done it using wsl/Ubuntu):
 
 1. Clone this GitHub repo:
-
 ```sh
-git clone https://github.com/rcoutinho16/sap-nw-abap-trial-docker-opensuse
-cd sap-nw-abap-trial-docker-opensuse
+git clone https://github.com/rcoutinho16/sap-nw-abap-trial-docker
+cd sap-nw-abap-trial-docker
 ```
 
-2. Download the [SAP NW ABAP Trial .rar files including the License](https://developers.sap.com/trials-downloads.html)
+2. Download the [SAP NetWeaver AS ABAP Developer Edition 7.52 SP04 including the License](https://developers.sap.com/trials-downloads.html)
+- Check all SHA-256 checksums to avoid headaches
 
 3. Create a new folder in the local repo folder that you just cloned called **sapdownloads**:
-
 ```sh
 mkdir sapdownloads
 ```
 
 4. Copy the extracted rar files to the **sapdownloads** folder **including the License**:
-
 ```sh
 cd sapdownloads
-unrar x ~/Downloads/TD752SP04part01.rar
-unrar x ~/Downloads/License.rar
+unrar x /mnt/c/Users/USERNAME/Downloads/TD752SP04part01.rar
+unrar x /mnt/c/Users/USERNAME/Downloads/License.rar
 ```
 
-5. Navigate to the root folder of the local repo and run the docker build command:
+5. If your linux kernel is >= 5.4, replace lines 882 to 886 of sapdownloads/install.sh with the following code
+```sh
+#Replace this line with one which tries to continue (this) main script using ‘&’:
+    #./saphostexec -install || do_exit $ERR_install_saphost
+    ./saphostexec -install &
 
+#Wait for a while so that hopefully the asynchronous call ends:
+    log_echo "Waiting 30 seconds for asynchronous call to /tmp/hostctrl/saphostexec -install to complete..."
+    sleep 30
+    log_echo "30 seconds are up, continuing the main script."
+
+    # TODO: is it ok to remove /tmp/hostctrl?
+    cd /
+#Let's not remove the temporary directory, in case saphostexec command
+#is still executing. So commenting out:
+    # rm -rf /tmp/hostctrl || log_echo "Failed to clean up temporary directory"
+
+# Now we modify the RUN_NPL executable (executable permissions are for sybnpl user):
+FILENPL=/sybase/NPL/ASE-16_0/install/RUN_NPL
+if test -f "$FILENPL"; then
+    echo "$FILENPL exists. Adding the -T11889 option to config in that file:"
+    sed -i 's/NPL.cfg \\/NPL.cfg -T11889 \\/g' /sybase/NPL/ASE-16_0/install/RUN_NPL
+    cat $FILENPL
+    echo "-T11889 config option added"
+    sleep 15
+else
+    echo "$FILENPL does not exist. Not modifying what doesn’t exist, ontologically seems ok."
+fi
+```
+
+6. Navigate to the root folder of the local repo and run the docker build command:
 ```sh
 cd ..
 docker build -t nwabap:7.52 .
 ```
 
-6. Once the build has finished you need to adjust your **vm.max_map_count=1000000**:
-
+7. Once the build has finished you need to adjust your **vm.max_map_count=1000000**:
 ```sh
 sudo sysctl -w vm.max_map_count=1000000
 ```
 
-7. Check that the vm.max_map_count has actually changed by running this command:
-
+8. Check that the vm.max_map_count has actually changed by running this command:
 ```sh
 sudo sysctl vm.max_map_count
 ```
 
-8. Then run your docker container:
-
+9. Then run your docker container:
 ```sh
-docker run -p 8000:8000 -p 44300:44300 -p 3300:3300 -p 3200:3200 -h vhcalnplci --name nwabap752 -it nwabap:7.52 /bin/bash
+docker run -p 8000:8000 -p 44300:44300 -p 3300:3300 -p 3200:3200 -h vhcalnplci --name nwabap752 -it nwabap:7.52
 ```
 
-9. Once your container is running you need to begin installing the SAP system. The **password** you select during the installation should be **at least 8 characters long**. This could take a while so be patient! :)
-
+10. Once your container is running you need to begin installing the SAP system. The **password** you select during the installation should be **at least 8 characters long**. This could take a while so be patient! :)
 ```sh
 /usr/sbin/uuidd
-./install.sh
+./zinstall.sh
 ```
-10. If the installation fails with **modlib.jslib.caughtException** error, copy the License to the installation folder and try again:
 
+11. If the installation fails with **modlib.jslib.caughtException** error, copy the License to the installation folder and try again:
 ```sh
 mv License/SYBASE_ASE_TestDrive/SYBASE_ASE_TestDrive.lic /sybase/NPL/SYSAM-2_0/licenses/
 ./install.sh
 ```
 
-11. Once the SAP system is installed successfully start the new SAP system by running the following commands:
-
+12. Once the SAP system is installed successfully start the new SAP system by running the following commands:
 ```sh
 su npladm
 startsap ALL
