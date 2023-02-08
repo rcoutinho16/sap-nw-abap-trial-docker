@@ -51,7 +51,14 @@ unrar x /mnt/c/Users/USERNAME/Downloads/TD752SP04part01.rar
 unrar x /mnt/c/Users/USERNAME/Downloads/License.rar
 ```
 
-5. If your linux kernel is >= 5.4, replace lines 882 to 886 of sapdownloads/install.sh with the following code
+5. Copy the new License to the server folder
+```sh
+cp License/SYBASE_ASE_TestDrive/SYBASE_ASE_TestDrive.lic server/TAR/x86_64/
+```
+
+6. Create a copy of file sapdownloads/install.sh with name zinstall.sh (on the same sapdownloads folder)
+
+7. If your linux kernel is >= 5.4, sapdownloads/zinstall.sh replace lines 882 to 886 of  with the following code
 ```sh
 #Replace this line with one which tries to continue (this) main script using ‘&’:
     #./saphostexec -install || do_exit $ERR_install_saphost
@@ -69,52 +76,48 @@ unrar x /mnt/c/Users/USERNAME/Downloads/License.rar
     # rm -rf /tmp/hostctrl || log_echo "Failed to clean up temporary directory"
 
 # Now we modify the RUN_NPL executable (executable permissions are for sybnpl user):
-FILENPL=/sybase/NPL/ASE-16_0/install/RUN_NPL
-if test -f "$FILENPL"; then
-    echo "$FILENPL exists. Adding the -T11889 option to config in that file:"
-    sed -i 's/NPL.cfg \\/NPL.cfg -T11889 \\/g' /sybase/NPL/ASE-16_0/install/RUN_NPL
-    cat $FILENPL
-    echo "-T11889 config option added"
-    sleep 15
-else
-    echo "$FILENPL does not exist. Not modifying what doesn’t exist, ontologically seems ok."
-fi
+    FILENPL=/sybase/NPL/ASE-16_0/install/RUN_NPL
+    if test -f "$FILENPL"; then
+        echo "$FILENPL exists. Adding the -T11889 option to config in that file:"
+        sed -i 's/NPL.cfg \\/NPL.cfg -T11889 \\/g' /sybase/NPL/ASE-16_0/install/RUN_NPL
+        cat $FILENPL
+        echo "-T11889 config option added"
+        sleep 15
+    else
+        echo "$FILENPL does not exist. Not modifying what doesn’t exist, ontologically seems ok."
+    fi
 ```
 
-6. Navigate to the root folder of the local repo and run the docker build command:
+8. Do a diff between sapdownloads/install.sh and sapdownloads/zinstall.sh to check your edit
+
+9. Navigate to the root folder of the local repo and run the docker build command:
 ```sh
 cd ..
 docker build -t nwabap:7.52 .
 ```
 
-7. Once the build has finished you need to adjust your **vm.max_map_count=1000000**:
+10. Once the build has finished you need to adjust your **vm.max_map_count=1000000**:
 ```sh
 sudo sysctl -w vm.max_map_count=1000000
 ```
 
-8. Check that the vm.max_map_count has actually changed by running this command:
+11. Check that the vm.max_map_count has actually changed by running this command:
 ```sh
 sudo sysctl vm.max_map_count
 ```
 
-9. Then run your docker container:
+12. Then run your docker container:
 ```sh
 docker run -p 8000:8000 -p 44300:44300 -p 3300:3300 -p 3200:3200 -h vhcalnplci --name nwabap752 -it nwabap:7.52
 ```
 
-10. Once your container is running you need to begin installing the SAP system. The **password** you select during the installation should be **at least 8 characters long**. This could take a while so be patient! :)
+13. Once your container is running you need to begin installing the SAP system. The **password** you select during the installation should be **at least 8 characters long**. This could take a while so be patient! :)
 ```sh
 /usr/sbin/uuidd
 ./zinstall.sh
 ```
 
-11. If the installation fails with **modlib.jslib.caughtException** error, copy the License to the installation folder and try again:
-```sh
-mv License/SYBASE_ASE_TestDrive/SYBASE_ASE_TestDrive.lic /sybase/NPL/SYSAM-2_0/licenses/
-./install.sh
-```
-
-12. Once the SAP system is installed successfully start the new SAP system by running the following commands:
+14. Once the SAP system is installed successfully start the new SAP system by running the following commands:
 ```sh
 su npladm
 startsap ALL
